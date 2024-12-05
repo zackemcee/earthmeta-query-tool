@@ -1,0 +1,24 @@
+/* Scrollable Table */
+.table-responsive {
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+/* Table Header Styling */
+#dataTable thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 1;
+    text-align: center;
+}
+
+/* Optional Hover Effect */
+#dataTable tbody tr:hover {
+    background-color: #f1f1f1;
+    cursor: pointer;
+}
+

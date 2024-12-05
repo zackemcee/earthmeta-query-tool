@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EarthMeta Query Tool</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+            font-family: 'Arial', sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+        }
+
+        .card {
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            font-size: 0.9rem;
+        }
+
+        th {
+            cursor: pointer;
+        }
+
+        th:hover {
+            background-color: #f1f1f1;
+        }
+
+        th, td {
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card shadow-lg">
+            <h2 class="text-center text-primary">🌍 EarthMeta Query Tool</h2>
+            <hr>
+            <div class="mb-4">
+                <label for="user_id" class="form-label">Enter your User ID:</label>
+                <input type="text" id="user_id" name="user_id" class="form-control" placeholder="Enter UID">
+            </div>
+            <div class="d-flex justify-content-between">
+                <button class="btn btn-primary btn-lg" onclick="loadCities()">Load Cities</button>
+                <button class="btn btn-secondary btn-lg" onclick="loadLands()">Load Lands</button>
+                <button class="btn btn-success btn-lg" onclick="exportToExcel()">Export to Excel</button>
+            </div>
+            <div id="output" class="mt-5">
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered" id="mainTable">
+                        <thead>
+                            <tr id="tableHeader"></tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <div id="spinner" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        let currentData = []; // To store the latest data displayed in the table
+        let currentSortColumn = null;
+        let currentSortOrder = "asc"; // Default sort order is ascending
+
+        async function loadCities() {
+            const userId = document.getElementById("user_id").value;
+            const spinner = document.getElementById("spinner");
+        
+            try {
+                spinner.style.display = "block"; // Show spinner
+                const response = await fetch('/load_cities', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `user_id=${userId}`
+                });
+                const data = await response.json();
+                currentData = data; // Save the current data
+                displayData(data);
+            } catch (error) {
+                console.error("Error loading cities:", error);
+            } finally {
+                spinner.style.display = "none"; // Hide spinner
+            }
+        }
+        
+        async function loadLands() {
+            const userId = document.getElementById("user_id").value;
+            const spinner = document.getElementById("spinner");
+        
+            try {
+                spinner.style.display = "block"; // Show spinner
+                const response = await fetch('/load_lands', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `user_id=${userId}`
+                });
+                const data = await response.json();
+                currentData = data; // Save the current data
+                displayData(data);
+            } catch (error) {
+                console.error("Error loading lands:", error);
+            } finally {
+                spinner.style.display = "none"; // Hide spinner
+            }
+        }
+        
+        
+        function displayData(data) {
+            const tableHeader = document.getElementById("tableHeader");
+            const tableBody = document.getElementById("tableBody");
+        
+            // Clear existing table content
+            tableHeader.innerHTML = "";
+            tableBody.innerHTML = "";
+        
+            if (data.length > 0 && !data.error) {
+                // Explicit column order for Lands Data
+                const landsColumnOrder = ['country', 'city', 'Land Name', 'Area', 'Price (USD)', 'On Sale', 'Created', 'Category'];
+        
+                // Check if the data is lands or cities by checking keys
+                const isLands = landsColumnOrder.every(key => key in data[0]);
+        
+                // Use specific order for Lands or dynamic for Cities
+                const columnOrder = isLands ? landsColumnOrder : Object.keys(data[0]);
+        
+                // Add table headers in the correct order
+                columnOrder.forEach((key, index) => {
+                    const th = document.createElement("th");
+                    th.textContent = key;
+                    th.style.cursor = "pointer"; // Indicate that the column is sortable
+                    th.addEventListener("click", () => sortTable(data, columnOrder, index));
+                    tableHeader.appendChild(th);
+                });
+        
+                // Render the rows
+                renderRows(data, columnOrder);
+            } else {
+                // Display no data message
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.colSpan = "100%";
+                cell.textContent = data.error || "No data available.";
+                cell.className = "text-center";
+                row.appendChild(cell);
+                tableBody.appendChild(row);
+            }
+        }
+        
+        
+        
+        function renderRows(data, columnOrder) {
+            const tableBody = document.getElementById("tableBody");
+            tableBody.innerHTML = ""; // Clear existing rows
+        
+            data.forEach(row => {
+                const tr = document.createElement("tr");
+                columnOrder.forEach(key => {
+                    const td = document.createElement("td");
+                    td.textContent = row[key] !== null ? row[key] : "N/A"; // Handle null/undefined values
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+        }
+        
+        function sortTable(data, columnOrder, columnIndex) {
+            const columnKey = columnOrder[columnIndex];
+        
+            // Determine the sort order
+            const isSameColumn = currentSortColumn === columnKey;
+            currentSortOrder = isSameColumn && currentSortOrder === "asc" ? "desc" : "asc";
+            currentSortColumn = columnKey;
+        
+            // Sort the data
+            data.sort((a, b) => {
+                const aValue = a[columnKey] !== null ? a[columnKey] : "";
+                const bValue = b[columnKey] !== null ? b[columnKey] : "";
+        
+                if (typeof aValue === "number" && typeof bValue === "number") {
+                    return currentSortOrder === "asc" ? aValue - bValue : bValue - aValue;
+                } else {
+                    return currentSortOrder === "asc"
+                        ? aValue.toString().localeCompare(bValue.toString())
+                        : bValue.toString().localeCompare(aValue.toString());
+                }
+            });
+        
+            // Re-render rows
+            renderRows(data, columnOrder);
+        
+            // Update the header with the sorting arrow
+            updateSortIndicator(columnIndex);
+        }
+        
+        function updateSortIndicator(columnIndex) {
+            const headers = Array.from(document.getElementById("tableHeader").children);
+        
+            headers.forEach((th, index) => {
+                th.textContent = th.textContent.replace(/ ↑| ↓/g, ""); // Clear existing arrows
+                if (index === columnIndex) {
+                    th.textContent += currentSortOrder === "asc" ? " ↑" : " ↓"; // Add arrow
+                }
+            });
+        }
+        
+        function exportToExcel() {
+            if (currentData.length === 0) {
+                alert("No data available to export.");
+                return;
+            }
+
+            // Convert the current data to a worksheet
+            const worksheet = XLSX.utils.json_to_sheet(currentData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+
+            // Determine the file name based on the context
+            const fileName = currentData[0]?.["City ID"] ? "cities_export.xlsx" : "lands_export.xlsx";
+            XLSX.writeFile(workbook, fileName);
+        }
+    </script>
+</body>
+</html>
