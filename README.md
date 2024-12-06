@@ -7,4 +7,4 @@ Retrieve and display lands within those cities.
 Responsive and scrollable table UI.
 
 # Live Application
-You can access the live application here: EarthMeta Query Tool
+You can access the live application here: [EarthMeta Query Tool](https://earthmeta-query-tool.onrender.com/)
