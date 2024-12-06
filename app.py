@@ -31,6 +31,23 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
+@app.route('/load_countries', methods=['GET'])
+def loadCountriesDefault():
+    try:
+        response = requests.get('https://api.earthmeta.ai/api/countries')
+        countries_data = response.json()
+        countries_df = pd.DataFrame(countries_data)
+        countries_df = countries_df[['name', 'president', 'rank', 'latitude', 'longitude']].fillna('N/A')
+        countries_df['president_uid'] = countries_df['president'].str.get('uuid').fillna('N/A')
+        countries_df['president'] = countries_df['president'].str.get('nickname').fillna('N/A')
+        countries_df.columns = ['Country', 'President', 'Rank', 'latitude', 'longitude','President ID']
+        return jsonify(countries_df.to_dict(orient='records'))
+    except Exception as e:
+        print(f"Error fetching countries: {e}")
+        return jsonify({"error": "Unable to load countries"}), 500
+
+
+
 @app.route('/load_cities', methods=['POST'])
 def get_cities():
     user_id = request.form.get('user_id')
@@ -40,7 +57,6 @@ def get_cities():
         'orderBy': 'Most_popular'
     }
     cities_df = fetch_all_pages(base_url, params)
-    print(cities_df.columns)
     cities_df['country'] = cities_df['country'].str.get('name')
     cities_df = cities_df[['city_name', 'city_price', 'country','city_tier']]
     cities_df.columns = ['Name', 'Price (USD)', 'country', 'Tier']
