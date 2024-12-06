@@ -1,4 +1,6 @@
-# EarthMeta Query Tool
+# [EarthMeta Query Tool](https://earthmeta-query-tool.onrender.com/)
+You can access the tool online at:  
+**[https://earthmeta-query-tool.onrender.com/](https://earthmeta-query-tool.onrender.com/)**
 
 ## Overview
 The **EarthMeta Query Tool** is a web-based application that allows users to query and explore data from the EarthMeta ecosystem. It provides features for filtering, sorting, and exporting data related to countries, cities, and lands.
